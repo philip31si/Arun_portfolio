@@ -1,21 +1,21 @@
 name: Push-to-EC2
 
-# Trigger deployment only on push to main branch
 on:
   push:
     branches:
       - main
-      
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
+    name: Deploy to EC2 on main branch push
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout repository files
       - name: Checkout the files
         uses: actions/checkout@v2
 
+      # Deploy files to the server
       - name: Deploy to Server 1
         uses: easingthemes/ssh-deploy@main
         env:
@@ -24,6 +24,7 @@ jobs:
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
 
+      # Run remote commands on EC2
       - name: Executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
         with:
@@ -31,9 +32,22 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Update system and install Apache
             sudo apt-get -y update
             sudo apt-get install -y apache2
             sudo systemctl start apache2
             sudo systemctl enable apache2
-            cd home
-            sudo mv * /var/www/html
+            
+            # Ensure the target directory exists
+            sudo mkdir -p /var/www/html
+            
+            # Clear existing files (optional: use with caution)
+            sudo rm -rf /var/www/html/*
+            
+            # Move files to the target directory
+            sudo mv ~/your-repo-folder/* /var/www/html/
+            
+            # Set correct permissions
+            sudo chown -R www-data:www-data /var/www/html
+            sudo chmod -R 755 /var/www/html
+
